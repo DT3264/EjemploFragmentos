@@ -1,11 +1,14 @@
 package net.ivanvega.fragmentosdinamicos;
 
+import android.app.Activity;
+import android.content.ComponentName;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
 
 import androidx.fragment.app.Fragment;
 
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
@@ -128,7 +131,7 @@ public class DetalleFragment extends Fragment
         lblAutor.setText(libro.getAutor());
         imvPortada.setImageResource(libro.getRecursoImagen());
 
-        if( mediaPlayer== null){
+        if( mediaPlayer == null){
             mediaPlayer = new MediaPlayer();
             mediaController = new MediaController(getActivity());
             mediaPlayer.setOnPreparedListener(this);
@@ -154,10 +157,12 @@ public class DetalleFragment extends Fragment
 
     @Override
     public void onPrepared(MediaPlayer mediaPlayer) {
+        Log.d("Preparado!", "Preparado");
         mediaPlayer.start();
         mediaController.setMediaPlayer(this);
         mediaController.setAnchorView(
                 getView().findViewById(R.id.fragment_detalle_layout_root));
+        mediaController.setPadding(0,0,0,110);
         mediaController.setEnabled(true);
         mediaController.show();
 
@@ -176,22 +181,30 @@ public class DetalleFragment extends Fragment
 
     @Override
     public int getDuration() {
-        return 0;
+        try {
+            return mediaPlayer.getDuration();
+        } catch (Exception e) {
+            return 0;
+        }
     }
 
     @Override
     public int getCurrentPosition() {
-        return 0;
+        try {
+            return mediaPlayer.getCurrentPosition();
+        } catch (Exception e) {
+            return 0;
+        }
     }
 
     @Override
     public void seekTo(int i) {
-
+        mediaPlayer.seekTo(i);
     }
 
     @Override
     public boolean isPlaying() {
-        return false;
+        return mediaPlayer.isPlaying();
     }
 
     @Override

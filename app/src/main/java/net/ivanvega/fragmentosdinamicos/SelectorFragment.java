@@ -7,15 +7,23 @@ import android.os.Bundle;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
+import androidx.coordinatorlayout.widget.CoordinatorLayout;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import com.google.android.material.snackbar.Snackbar;
+import com.google.android.material.tabs.TabLayout;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -80,10 +88,30 @@ public class SelectorFragment extends Fragment {
 
     }
 
+    @Override public void onCreateOptionsMenu(Menu menu, MenuInflater inflater){
+        inflater.inflate(R.menu.menu_selector, menu);
+        super.onCreateOptionsMenu(menu, inflater);
+    }
+
+    @Override public boolean onOptionsItemSelected(MenuItem item){
+        int id = item.getItemId();
+        if(id == R.id.menu_ultimo){
+            ((MainActivity)contexto).irUltimoVisitado();
+            return true;
+        }
+        else if(id == R.id.menu_buscar){
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
+
+        setHasOptionsMenu(true);
+
 
         View layout =inflater
                 .inflate(R.layout.fragment_selector_layout,
@@ -97,8 +125,8 @@ public class SelectorFragment extends Fragment {
         recyclerViewLibros =
                 layout.findViewById(R.id.recyclerViewLibros);
 
-        MiAdaptadorPersonalizado miAdaptadorPersonalizado =
-        new MiAdaptadorPersonalizado(getActivity() ,
+        AdaptadorLibrosFiltro miAdaptadorPersonalizado =
+        new AdaptadorLibrosFiltro(getActivity() ,
                 Libro.ejemplosLibros()
                 )        ;
 
@@ -108,10 +136,10 @@ public class SelectorFragment extends Fragment {
                         recyclerViewLibros.
                                 getChildAdapterPosition(view);
                 Toast.makeText(getActivity(),
-                        "ELement at selected" + pos,
+                        "ELement at " + pos,
                         Toast.LENGTH_LONG).show();
 
-                ((MainActivity)this.contexto).mostrarDetalle(pos);
+                ((MainActivity)this.contexto).mostrarDetalle(recyclerViewLibros.getChildAdapterPosition(view));
             }
         );
 
@@ -150,18 +178,20 @@ public class SelectorFragment extends Fragment {
 
                                             break;
                                         case 1:
-
-                                            Libro.ejemplosLibros().add(
-                                                    Libro.ejemplosLibros().get(posLibro)
-                                            );
+                                            int pos = recyclerViewLibros.getChildLayoutPosition(view);
+                                            miAdaptadorPersonalizado.insertar(miAdaptadorPersonalizado.getItem(pos));
                                             miAdaptadorPersonalizado
-                                                    .notifyItemInserted(
-                                                            Libro.ejemplosLibros().size()-1);
+                                                    .notifyDataSetChanged();
+                                            Snackbar.make(view, "Libro insertado", Snackbar.LENGTH_INDEFINITE)
+                                            .setAction("OK", view -> {}).show();
                                             break;
 
                                         case 2:
-                                            Libro.ejemplosLibros().remove(posLibro);
-                                            miAdaptadorPersonalizado.notifyItemRemoved(posLibro);
+                                            Snackbar.make(view, "¿Estás seguro?", Snackbar.LENGTH_LONG)
+                                                    .setAction("SI", view1 -> {
+                                                        miAdaptadorPersonalizado.borrar(i);
+                                                        miAdaptadorPersonalizado.notifyDataSetChanged();
+                                                    }).show();
                                             break;
                                     }
 
@@ -173,15 +203,55 @@ public class SelectorFragment extends Fragment {
                     return false;
                 });
 
-
-
-        RecyclerView.LayoutManager layoutManager
-                = new GridLayoutManager(getActivity(),
-                2);
-
-        recyclerViewLibros.setLayoutManager(layoutManager);
+        recyclerViewLibros.setLayoutManager( new GridLayoutManager(getActivity(), 2));
         recyclerViewLibros.setAdapter(miAdaptadorPersonalizado);
 
+
+
+        View myActivityView = getActivity().findViewById(R.id.layout);
+
+        TabLayout tabs = myActivityView.findViewById(R.id.tabs);
+        if(tabs!=null) {
+            tabs.addTab(tabs.newTab().setText("Todos"));
+            tabs.addTab(tabs.newTab().setText("Nuevos"));
+            tabs.addTab(tabs.newTab().setText("Leidos"));
+            tabs.setTabMode(TabLayout.MODE_SCROLLABLE);
+            tabs.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
+                @Override
+                public void onTabSelected(TabLayout.Tab tab) {
+                    Log.d("OnTab", "OnTab");
+                    switch (tab.getPosition()){
+                        case 0: // Todos
+                            miAdaptadorPersonalizado.setNovedad(false);
+                            miAdaptadorPersonalizado.setLeido(false);
+                            break;
+                        case 1: // Nuevos
+                            miAdaptadorPersonalizado.setNovedad(true);
+                            miAdaptadorPersonalizado.setLeido(false);
+                            break;
+                        case 2: // Leidos
+                            miAdaptadorPersonalizado.setNovedad(false);
+                            miAdaptadorPersonalizado.setLeido(true);
+                            break;
+                    }
+                    recyclerViewLibros.setAdapter(null);
+                    recyclerViewLibros.setLayoutManager(null);
+                    recyclerViewLibros.setAdapter(miAdaptadorPersonalizado);
+                    recyclerViewLibros.setLayoutManager( new GridLayoutManager(getActivity(), 2));
+                    miAdaptadorPersonalizado.notifyDataSetChanged();
+                }
+
+                @Override
+                public void onTabUnselected(TabLayout.Tab tab) {
+
+                }
+
+                @Override
+                public void onTabReselected(TabLayout.Tab tab) {
+
+                }
+            });
+        }
 
 
         return layout;
